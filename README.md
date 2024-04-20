@@ -1,2 +1,3 @@
 # CacheManager
-Simple php cache management
+
+Simple, barebones cache manager for PHP, JavaScript, Python

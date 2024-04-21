@@ -73,7 +73,7 @@ class CacheManager
                 if (false !== $sep)
                 {
                     $expiration = substr($data, 0, $sep);
-                    if (intval($expiration) <= time())
+                    if (time() <= intval($expiration))
                     {
                         $content = substr($data, $sep+strlen($separator));
                         return $content;

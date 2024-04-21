@@ -29,6 +29,7 @@ class CacheManager
         // some default options
         $this->option('get_key', null);
         $this->option('set_key', null);
+        $this->option('del_key', null);
         $this->option('cache_dur_sec', 1 * 24 * 60 * 60/*1 day in seconds*/);
         $this->option('cache_dir', '');
         $this->option('separator', '!');
@@ -61,15 +62,15 @@ class CacheManager
         {
             $file = $cache_dir . DIRECTORY_SEPARATOR . $this->hmac($key);
             try {
-                $data = file_get_contents($file);
-            } catch($e) {
+                $data = @file_get_contents($file);
+            } catch(Exception $e) {
                 $data = false;
             }
             if (false !== $data)
             {
                 $separator = $this->option('separator');
                 $sep = strpos($data, $separator, 0);
-                if (false !== $mark)
+                if (false !== $sep)
                 {
                     $expiration = substr($data, 0, $sep);
                     if (intval($expiration) <= time())
@@ -97,8 +98,29 @@ class CacheManager
             $file = $cache_dir . DIRECTORY_SEPARATOR . $this->hmac($key);
             $separator = $this->option('separator');
             try {
-                $res = file_put_contents($file, ((string)(time()+$duration)).$separator.$content);
-            } catch($e) {
+                $res = @file_put_contents($file, ((string)(time()+$duration)).$separator.$content);
+            } catch(Exception $e) {
+                $res = false;
+            }
+            return false !== $res;
+        }
+        return false;
+    }
+
+    public function del($key)
+    {
+        $deleter = $this->option('del_key');
+        $cache_dir = $this->option('cache_dir');
+        if (is_callable($deleter))
+        {
+            return call_user_func($deleter, $key);
+        }
+        elseif (!empty($cache_dir) /*&& file_exists($cache_dir)*/)
+        {
+            $file = $cache_dir . DIRECTORY_SEPARATOR . $this->hmac($key);
+            try {
+                $res = @unlink($file);
+            } catch(Exception $e) {
                 $res = false;
             }
             return false !== $res;

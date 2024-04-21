@@ -27,12 +27,12 @@ class CacheManager
     {
         $this->opts = array();
         // some default options
+        $this->option('get_key', null);
+        $this->option('set_key', null);
         $this->option('cache_dur_sec', 1 * 24 * 60 * 60/*1 day in seconds*/);
         $this->option('cache_dir', '');
         $this->option('separator', '!');
         $this->option('salt', '');
-        $this->option('get_key', null);
-        $this->option('set_key', null);
     }
 
     public function option($key, $val = null)
@@ -60,18 +60,21 @@ class CacheManager
         elseif (!empty($cache_dir) /*&& file_exists($cache_dir)*/)
         {
             $file = $cache_dir . DIRECTORY_SEPARATOR . $this->hmac($key);
-            if (file_exists($file))
-            {
+            try {
                 $data = file_get_contents($file);
+            } catch($e) {
+                $data = false;
+            }
+            if (false !== $data)
+            {
                 $separator = $this->option('separator');
-                $mark = strpos($data, $separator, 0);
+                $sep = strpos($data, $separator, 0);
                 if (false !== $mark)
                 {
-                    $meta = substr($data, 0, $pos);
-                    $expiration = floatval($meta);
-                    if ($expiration < time())
+                    $expiration = substr($data, 0, $sep);
+                    if (intval($expiration) <= time())
                     {
-                        $content = substr($data, $pos+strlen($separator));
+                        $content = substr($data, $sep+strlen($separator));
                         return $content;
                     }
                 }
@@ -93,8 +96,12 @@ class CacheManager
         {
             $file = $cache_dir . DIRECTORY_SEPARATOR . $this->hmac($key);
             $separator = $this->option('separator');
-            file_put_contents($file, ((string)(time()+$duration)).$separator.$content);
-            return true;
+            try {
+                $res = file_put_contents($file, ((string)(time()+$duration)).$separator.$content);
+            } catch($e) {
+                $res = false;
+            }
+            return false !== $res;
         }
         return false;
     }
